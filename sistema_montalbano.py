@@ -4,7 +4,17 @@ import random
 import hashlib
 import time
 
-def simulate_bets(num_sets, num_bets, bet_range_min, bet_range_max, win_percent, loss_percent):
+# Funzione per selezionare il tipo di calcolo della probabilità
+def choose_prob_type():
+    print("Seleziona il tipo di calcolo della probabilità:")
+    print("1. Casuale")
+    print("2. Definita da un intervallo")
+    print("3. Calcolata da dati passati (non implementata)")
+    choice = input("Inserisci la tua scelta (1, 2, o 3): ")
+    return choice
+
+# Funzione per simulare le scommesse
+def simulate_bets(num_sets, num_bets, bet_range_min, bet_range_max, win_percent, loss_percent, prob_type, user_defined_prob_range=None):
     detailed_results = []
     total_sum = 0
     total_loss = 0
@@ -13,7 +23,13 @@ def simulate_bets(num_sets, num_bets, bet_range_min, bet_range_max, win_percent,
     weighted_win_prob_sum = 0
 
     for i in range(num_sets):
-        win_prob = round(random.uniform(0.00001, 0.1), 2)
+        if prob_type == "1":
+            win_prob = round(random.uniform(0.00001, 0.35), 2)
+        elif prob_type == "2":
+            win_prob = round(random.uniform(user_defined_prob_range[0], user_defined_prob_range[1]), 2)
+        else:  # Probabilità calcolata da dati passati (non implementata)
+            win_prob = 0.1  # Placeholder
+
         weighted_win_prob_sum += win_prob * num_bets
 
         bets = []
@@ -37,6 +53,7 @@ def simulate_bets(num_sets, num_bets, bet_range_min, bet_range_max, win_percent,
     weighted_win_prob = round(weighted_win_prob_sum / (num_sets * num_bets), 2)
     return detailed_results, total_sum, average, negative_sets, total_loss, total_wins, weighted_win_prob
 
+# Funzione per scrivere i risultati in un file CSV
 def write_to_csv(simulated_bets, total, average, negative_sets, total_loss, total_wins, weighted_win_prob):
     unique_hash = hashlib.md5(str(time.time()).encode()).hexdigest()
     file_name = f'scommesse_{unique_hash}.csv'
@@ -57,6 +74,7 @@ def write_to_csv(simulated_bets, total, average, negative_sets, total_loss, tota
     except Exception as e:
         print(f"Si è verificato un errore durante la scrittura del file: {e}")
 
+# Funzione per ottenere i parametri di input dall'utente
 def input_parameters():
     try:
         num_sets = int(input("Inserisci il numero di set di scommesse da simulare: "))
@@ -65,16 +83,25 @@ def input_parameters():
         bet_range_max = float(input("Inserisci l'importo massimo della scommessa: "))
         win_percent = float(input("Inserisci la percentuale di vincita (es: 0.10 per 10%): "))
         loss_percent = float(input("Inserisci la percentuale di perdita (es: 0.03 per 3%): "))
-        return num_sets, num_bets, bet_range_min, bet_range_max, win_percent, loss_percent
+        prob_type = choose_prob_type()
+        user_defined_prob_range = None
+
+        if prob_type == "2":
+            prob_min = float(input("Inserisci il valore minimo della probabilità: "))
+            prob_max = float(input("Inserisci il valore massimo della probabilità: "))
+            user_defined_prob_range = (prob_min, prob_max)
+
+        return num_sets, num_bets, bet_range_min, bet_range_max, win_percent, loss_percent, prob_type, user_defined_prob_range
     except ValueError:
         print("Input non valido. Per favore inserisci valori numerici.")
         return None
 
+# Main loop del programma
 parameters = input_parameters()
 
 if parameters:
-    num_sets, num_bets, bet_range_min, bet_range_max, win_percent, loss_percent = parameters
-    simulated_bets, total, average, negative_sets, total_loss, total_wins, weighted_win_prob = simulate_bets(num_sets, num_bets, bet_range_min, bet_range_max, win_percent, loss_percent)
+    num_sets, num_bets, bet_range_min, bet_range_max, win_percent, loss_percent, prob_type, user_defined_prob_range = parameters
+    simulated_bets, total, average, negative_sets, total_loss, total_wins, weighted_win_prob = simulate_bets(num_sets, num_bets, bet_range_min, bet_range_max, win_percent, loss_percent, prob_type, user_defined_prob_range)
     
     for set_num, win_prob, bets, set_sum, set_mean in simulated_bets:
         print(f"Set {set_num}: P: {win_prob:.2f}, -> {bets}, Sum: {set_sum}, M: {set_mean}")
@@ -90,6 +117,7 @@ if parameters:
     write_to_csv(simulated_bets, total, average, negative_sets, total_loss, total_wins, weighted_win_prob)
 else:
     print("Simulazione non eseguita a causa di input non validi.")
+
 
 
 
